@@ -1,4 +1,4 @@
-public class UC3_usingreverse {
+public class PalindromeChecker {
     public static void main(String[] args) {
 
         String input = "madam";

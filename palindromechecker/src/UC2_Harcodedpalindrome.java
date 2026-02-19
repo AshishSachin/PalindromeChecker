@@ -1,17 +1,16 @@
-public class UC2_Harcodedpalindrome {
-
+public class PalindromeChecker{
 
     public static void main(String[] args) {
 
         String input = "madam";
+        boolean isPalindrome = true;
 
-        String reversed = "";
-
-        for (int i = input.length() - 1; i >= 0; i--) {
-            reversed += input.charAt(i);
+        for (int i = 0; i < input.length() / 2; i++) {
+            if (input.charAt(i) != input.charAt(input.length() - i - 1)) {
+                isPalindrome = false;
+                break;
+            }
         }
-
-        boolean isPalindrome = input.equals(reversed);
 
         System.out.println("Input text: " + input);
         System.out.println("Is it a Palindrome? : " + isPalindrome);

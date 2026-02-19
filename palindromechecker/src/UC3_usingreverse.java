@@ -1,6 +1,4 @@
-public class UC2_Harcodedpalindrome {
-
-
+public class UC3_usingreverse {
     public static void main(String[] args) {
 
         String input = "madam";
@@ -17,3 +15,4 @@ public class UC2_Harcodedpalindrome {
         System.out.println("Is it a Palindrome? : " + isPalindrome);
     }
 }
+

@@ -6,7 +6,7 @@ public class PalindromeChecker {
 
     public static void main(String[] args){
         /*
-        UC9
+        UC10
          */
         Scanner scanner = new Scanner(System.in);
 
@@ -14,12 +14,12 @@ public class PalindromeChecker {
         System.out.print("Enter a string: ");
         String input = scanner.nextLine();
 
-        // Remove spaces and convert to lowercase
+        // Preprocess input
         String processedInput = input.replaceAll("\\s+", "").toLowerCase();
 
-        boolean isPalindrome = checkPalindrome(processedInput, 0, processedInput.length() - 1);
+        boolean result = isPalindrome(processedInput, 0, processedInput.length() - 1);
 
-        if (isPalindrome) {
+        if (result) {
             System.out.println("Result: The given string IS a Palindrome.");
         } else {
             System.out.println("Result: The given string is NOT a Palindrome.");
@@ -28,21 +28,21 @@ public class PalindromeChecker {
         scanner.close();
     }
 
-    // Recursive method
-    private static boolean checkPalindrome(String str, int start, int end) {
+    // Recursive Method
+    private static boolean isPalindrome(String str, int start, int end) {
 
         // Base Condition
         if (start >= end) {
             return true;
         }
 
-        // If mismatch found
+        // Compare characters
         if (str.charAt(start) != str.charAt(end)) {
             return false;
         }
 
         // Recursive Call
-        return checkPalindrome(str, start + 1, end - 1);
+        return isPalindrome(str, start + 1, end - 1);
 
 
 

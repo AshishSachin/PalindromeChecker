@@ -1,38 +1,57 @@
+import java.util.LinkedList;
+import java.util.Queue;
+import java.util.Scanner;
+import java.util.Stack;
 public class PalindromeChecker {
 
 
     public static void main(String[] args){
         /*
-        UC5
+        UC6
          */
-        public static void main(String[] args) {
 
-            // Hardcoded input
-            String input = "madam";
 
-            // Create Stack
-            Stack<Character> stack = new Stack<>();
+        Scanner scanner = new Scanner(System.in);
 
-            // Push all characters into stack
-            for (int i = 0; i < input.length(); i++) {
-                stack.push(input.charAt(i));
+        System.out.println("=== UC6: Queue + Stack Based Palindrome Checker ===");
+        System.out.print("Enter a string: ");
+        String input = scanner.nextLine();
+
+        // Remove spaces and convert to lowercase
+        String processedInput = input.replaceAll("\\s+", "").toLowerCase();
+
+        // Create Queue (FIFO) and Stack (LIFO)
+        Queue<Character> queue = new LinkedList<>();
+        Stack<Character> stack = new Stack<>();
+
+        // Enqueue and Push characters
+        for (int i = 0; i < processedInput.length(); i++) {
+            char ch = processedInput.charAt(i);
+            queue.add(ch);      // Enqueue
+            stack.push(ch);     // Push
+        }
+
+        boolean isPalindrome = true;
+
+        // Compare dequeue vs pop
+        while (!queue.isEmpty()) {
+            char fromQueue = queue.remove();  // Dequeue (FIFO)
+            char fromStack = stack.pop();     // Pop (LIFO)
+
+            if (fromQueue != fromStack) {
+                isPalindrome = false;
+                break;
             }
+        }
 
-            boolean isPalindrome = true;
+        // Result
+        if (isPalindrome) {
+            System.out.println("Result: The given string IS a Palindrome.");
+        } else {
+            System.out.println("Result: The given string is NOT a Palindrome.");
+        }
 
-            // Pop characters and compare
-            for (int i = 0; i < input.length(); i++) {
-                char poppedChar = stack.pop();
-
-                if (input.charAt(i) != poppedChar) {
-                    isPalindrome = false;
-                    break;
-                }
-            }
-
-            // Print result
-            System.out.println("Input text: " + input);
-            System.out.println("Is it a Palindrome? : " + isPalindrome);
+        scanner.close();
 
 
     }

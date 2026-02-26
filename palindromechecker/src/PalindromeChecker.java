@@ -3,31 +3,36 @@ public class PalindromeChecker {
 
     public static void main(String[] args){
         /*
-        UC4
+        UC5
          */
-        String input = "madam";
+        public static void main(String[] args) {
 
+            // Hardcoded input
+            String input = "madam";
 
-        char[] characters = input.toCharArray();
+            // Create Stack
+            Stack<Character> stack = new Stack<>();
 
-
-        int start = 0;
-        int end = characters.length - 1;
-
-        boolean isPalindrome = true;
-
-        while (start < end) {
-            if (characters[start] != characters[end]) {
-                isPalindrome = false;
-                break;
+            // Push all characters into stack
+            for (int i = 0; i < input.length(); i++) {
+                stack.push(input.charAt(i));
             }
-            start++;
-            end--;
-        }
 
+            boolean isPalindrome = true;
 
-        System.out.println("Input text: " + input);
-        System.out.println("Is it a Palindrome? : " + isPalindrome);
+            // Pop characters and compare
+            for (int i = 0; i < input.length(); i++) {
+                char poppedChar = stack.pop();
+
+                if (input.charAt(i) != poppedChar) {
+                    isPalindrome = false;
+                    break;
+                }
+            }
+
+            // Print result
+            System.out.println("Input text: " + input);
+            System.out.println("Is it a Palindrome? : " + isPalindrome);
 
 
     }

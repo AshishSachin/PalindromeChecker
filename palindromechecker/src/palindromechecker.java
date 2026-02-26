@@ -1,4 +1,5 @@
 import java.util.Scanner;
+import java.util.Stack;
 public class PalindromeChecker {
 
 
@@ -8,43 +9,52 @@ public class PalindromeChecker {
         /*
         UC10
          */
-        Scanner scanner = new Scanner(System.in);
+        // Public method exposed to client
+        public boolean checkPalindrome(String input) {
 
-        System.out.println("=== UC9: Recursive Palindrome Checker ===");
-        System.out.print("Enter a string: ");
-        String input = scanner.nextLine();
+            String processedInput = input.replaceAll("\\s+", "").toLowerCase();
 
-        // Preprocess input
-        String processedInput = input.replaceAll("\\s+", "").toLowerCase();
+            Stack<Character> stack = new Stack<>();
 
-        boolean result = isPalindrome(processedInput, 0, processedInput.length() - 1);
+            // Push all characters to stack
+            for (int i = 0; i < processedInput.length(); i++) {
+                stack.push(processedInput.charAt(i));
+            }
 
-        if (result) {
-            System.out.println("Result: The given string IS a Palindrome.");
-        } else {
-            System.out.println("Result: The given string is NOT a Palindrome.");
-        }
+            // Compare with original order
+            for (int i = 0; i < processedInput.length(); i++) {
+                if (processedInput.charAt(i) != stack.pop()) {
+                    return false;
+                }
+            }
 
-        scanner.close();
-    }
-
-    // Recursive Method
-    private static boolean isPalindrome(String str, int start, int end) {
-
-        // Base Condition
-        if (start >= end) {
             return true;
         }
+    }
 
-        // Compare characters
-        if (str.charAt(start) != str.charAt(end)) {
-            return false;
-        }
+    // Application Class (Client)
+    public class UseCase11PalindromeCheckerApp {
 
-        // Recursive Call
-        return isPalindrome(str, start + 1, end - 1);
+        public static void main(String[] args) {
 
+            Scanner scanner = new Scanner(System.in);
 
+            System.out.println("=== UC11: Object-Oriented Palindrome Service ===");
+            System.out.print("Enter a string: ");
+            String input = scanner.nextLine();
+
+            // Create object of service class
+            PalindromeChecker checker = new PalindromeChecker();
+
+            boolean result = checker.checkPalindrome(input);
+
+            if (result) {
+                System.out.println("Result: The given string IS a Palindrome.");
+            } else {
+                System.out.println("Result: The given string is NOT a Palindrome.");
+            }
+
+            scanner.close();
 
 
     }

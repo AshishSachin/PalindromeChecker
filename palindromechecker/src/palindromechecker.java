@@ -1,39 +1,67 @@
+import java.util.*;
+
 public class PalindromeChecker {
 
+    // Stores username -> userId
+    private static HashMap<String, Integer> users = new HashMap<>();
 
-    public static void main(String[] args){
-        /*
-        UC5
-         */
-        public static void main(String[] args) {
+    // Stores username -> attempt count
+    private static HashMap<String, Integer> attempts = new HashMap<>();
 
-            // Hardcoded input
-            String input = "madam";
+    // Check if username is available
+    public static boolean checkAvailability(String username) {
 
-            // Create Stack
-            Stack<Character> stack = new Stack<>();
+        // Track attempt frequency
+        attempts.put(username, attempts.getOrDefault(username, 0) + 1);
 
-            // Push all characters into stack
-            for (int i = 0; i < input.length(); i++) {
-                stack.push(input.charAt(i));
+        // O(1) lookup
+        return !users.containsKey(username);
+    }
+
+    // Register a new user
+    public static void registerUser(String username, int userId) {
+        users.put(username, userId);
+    }
+
+    // Suggest alternative usernames
+    public static List<String> suggestAlternatives(String username) {
+
+        List<String> suggestions = new ArrayList<>();
+
+        suggestions.add(username + "1");
+        suggestions.add(username + "2");
+        suggestions.add(username.replace("_", "."));
+        suggestions.add(username + "_official");
+
+        return suggestions;
+    }
+
+    // Find most attempted username
+    public static String getMostAttempted() {
+
+        String most = "";
+        int max = 0;
+
+        for (String user : attempts.keySet()) {
+            if (attempts.get(user) > max) {
+                max = attempts.get(user);
+                most = user;
             }
+        }
 
-            boolean isPalindrome = true;
+        return most + " (" + max + " attempts)";
+    }
 
-            // Pop characters and compare
-            for (int i = 0; i < input.length(); i++) {
-                char poppedChar = stack.pop();
+    public static void main(String[] args) {
 
-                if (input.charAt(i) != poppedChar) {
-                    isPalindrome = false;
-                    break;
-                }
-            }
+        registerUser("john_doe", 101);
+        registerUser("admin", 102);
 
-            // Print result
-            System.out.println("Input text: " + input);
-            System.out.println("Is it a Palindrome? : " + isPalindrome);
+        System.out.println("john_doe available: " + checkAvailability("john_doe"));
+        System.out.println("jane_smith available: " + checkAvailability("jane_smith"));
 
+        System.out.println("Suggestions: " + suggestAlternatives("john_doe"));
 
+        System.out.println("Most attempted: " + getMostAttempted());
     }
 }

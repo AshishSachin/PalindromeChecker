@@ -2,75 +2,66 @@ import java.util.*;
 
 public class PalindromeChecker {
 
-    // Reverse Method
-    public static boolean reverseMethod(String text){
-        String reversed = new StringBuilder(text).reverse().toString();
-        return text.equals(reversed);
+    // Stores username -> userId
+    private static HashMap<String, Integer> users = new HashMap<>();
+
+    // Stores username -> attempt count
+    private static HashMap<String, Integer> attempts = new HashMap<>();
+
+    // Check if username is available
+    public static boolean checkAvailability(String username) {
+
+        // Track attempt frequency
+        attempts.put(username, attempts.getOrDefault(username, 0) + 1);
+
+        // O(1) lookup
+        return !users.containsKey(username);
     }
 
-    // Stack Method
-    public static boolean stackMethod(String text){
-        Stack<Character> stack = new Stack<>();
-
-        for(char c : text.toCharArray()){
-            stack.push(c);
-        }
-
-        String reversed = "";
-
-        while(!stack.isEmpty()){
-            reversed += stack.pop();
-        }
-
-        return text.equals(reversed);
+    // Register a new user
+    public static void registerUser(String username, int userId) {
+        users.put(username, userId);
     }
 
-    // Deque Method
-    public static boolean dequeMethod(String text){
-        Deque<Character> deque = new ArrayDeque<>();
+    // Suggest alternative usernames
+    public static List<String> suggestAlternatives(String username) {
 
-        for(char c : text.toCharArray()){
-            deque.addLast(c);
-        }
+        List<String> suggestions = new ArrayList<>();
 
-        while(deque.size() > 1){
-            if(deque.removeFirst() != deque.removeLast()){
-                return false;
+        suggestions.add(username + "1");
+        suggestions.add(username + "2");
+        suggestions.add(username.replace("_", "."));
+        suggestions.add(username + "_official");
+
+        return suggestions;
+    }
+
+    // Find most attempted username
+    public static String getMostAttempted() {
+
+        String most = "";
+        int max = 0;
+
+        for (String user : attempts.keySet()) {
+            if (attempts.get(user) > max) {
+                max = attempts.get(user);
+                most = user;
             }
         }
 
-        return true;
+        return most + " (" + max + " attempts)";
     }
 
-    public static void main(String[] args){
-        Scanner sc = new Scanner(System.in);
+    public static void main(String[] args) {
 
-        System.out.println("Enter a string:");
-        String input = sc.nextLine();
+        registerUser("john_doe", 101);
+        registerUser("admin", 102);
 
-        long start, end;
+        System.out.println("john_doe available: " + checkAvailability("john_doe"));
+        System.out.println("jane_smith available: " + checkAvailability("jane_smith"));
 
-        // Reverse Method
-        start = System.nanoTime();
-        boolean r1 = reverseMethod(input);
-        end = System.nanoTime();
-        System.out.println("Reverse Method Result: " + r1);
-        System.out.println("Time Taken: " + (end - start) + " ns");
+        System.out.println("Suggestions: " + suggestAlternatives("john_doe"));
 
-        // Stack Method
-        start = System.nanoTime();
-        boolean r2 = stackMethod(input);
-        end = System.nanoTime();
-        System.out.println("Stack Method Result: " + r2);
-        System.out.println("Time Taken: " + (end - start) + " ns");
-
-        // Deque Method
-        start = System.nanoTime();
-        boolean r3 = dequeMethod(input);
-        end = System.nanoTime();
-        System.out.println("Deque Method Result: " + r3);
-        System.out.println("Time Taken: " + (end - start) + " ns");
-
-        sc.close();
+        System.out.println("Most attempted: " + getMostAttempted());
     }
 }

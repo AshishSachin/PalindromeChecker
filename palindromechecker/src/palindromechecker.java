@@ -1,61 +1,54 @@
 import java.util.Scanner;
 import java.util.Stack;
-public class PalindromeChecker {
 
+// PalindromeChecker class (Encapsulation)
+class PalindromeChecker {
 
+    // Method to check if a string is palindrome
+    public boolean checkPalindrome(String input) {
 
+        Stack<Character> stack = new Stack<>();
 
-    public static void main(String[] args){
-        /*
-        UC10
-         */
-        // Public method exposed to client
-        public boolean checkPalindrome(String input) {
-
-            String processedInput = input.replaceAll("\\s+", "").toLowerCase();
-
-            Stack<Character> stack = new Stack<>();
-
-            // Push all characters to stack
-            for (int i = 0; i < processedInput.length(); i++) {
-                stack.push(processedInput.charAt(i));
-            }
-
-            // Compare with original order
-            for (int i = 0; i < processedInput.length(); i++) {
-                if (processedInput.charAt(i) != stack.pop()) {
-                    return false;
-                }
-            }
-
-            return true;
+        // Push characters into stack
+        for (int i = 0; i < input.length(); i++) {
+            stack.push(input.charAt(i));
         }
+
+        // Create reversed string using stack
+        String reversed = "";
+        while (!stack.isEmpty()) {
+            reversed = reversed + stack.pop();
+        }
+
+        // Compare original and reversed string
+        return input.equals(reversed);
     }
+}
 
-    // Application Class (Client)
-    public class UseCase11PalindromeCheckerApp {
+// Main Application Class
+public class UseCase11PalindromeCheckerApp {
 
-        public static void main(String[] args) {
+    public static void main(String[] args) {
 
-            Scanner scanner = new Scanner(System.in);
+        Scanner scanner = new Scanner(System.in);
 
-            System.out.println("=== UC11: Object-Oriented Palindrome Service ===");
-            System.out.print("Enter a string: ");
-            String input = scanner.nextLine();
+        System.out.println("=== Palindrome Checker App ===");
+        System.out.print("Enter a string: ");
 
-            // Create object of service class
-            PalindromeChecker checker = new PalindromeChecker();
+        String input = scanner.nextLine();
 
-            boolean result = checker.checkPalindrome(input);
+        // Create object of PalindromeChecker
+        PalindromeChecker checker = new PalindromeChecker();
 
-            if (result) {
-                System.out.println("Result: The given string IS a Palindrome.");
-            } else {
-                System.out.println("Result: The given string is NOT a Palindrome.");
-            }
+        // Check palindrome
+        boolean result = checker.checkPalindrome(input);
 
-            scanner.close();
+        if (result) {
+            System.out.println("The string is a Palindrome.");
+        } else {
+            System.out.println("The string is NOT a Palindrome.");
+        }
 
-
+        scanner.close();
     }
 }

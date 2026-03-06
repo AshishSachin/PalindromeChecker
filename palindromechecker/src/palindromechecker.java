@@ -2,66 +2,65 @@ import java.util.*;
 
 public class PalindromeChecker {
 
-    // Stores username -> userId
-    private static HashMap<String, Integer> users = new HashMap<>();
+    // productId -> stock count
+    private static HashMap<String, Integer> inventory = new HashMap<>();
 
-    // Stores username -> attempt count
-    private static HashMap<String, Integer> attempts = new HashMap<>();
+    // productId -> waiting list (FIFO)
+    private static HashMap<String, LinkedHashMap<Integer, Boolean>> waitingList = new HashMap<>();
 
-    // Check if username is available
-    public static boolean checkAvailability(String username) {
 
-        // Track attempt frequency
-        attempts.put(username, attempts.getOrDefault(username, 0) + 1);
-
-        // O(1) lookup
-        return !users.containsKey(username);
+    // Initialize stock
+    public static void addProduct(String productId, int stock) {
+        inventory.put(productId, stock);
+        waitingList.put(productId, new LinkedHashMap<>());
     }
 
-    // Register a new user
-    public static void registerUser(String username, int userId) {
-        users.put(username, userId);
+
+    // Check stock availability
+    public static int checkStock(String productId) {
+        return inventory.getOrDefault(productId, 0);
     }
 
-    // Suggest alternative usernames
-    public static List<String> suggestAlternatives(String username) {
 
-        List<String> suggestions = new ArrayList<>();
+    // Purchase item (thread-safe)
+    public synchronized static String purchaseItem(String productId, int userId) {
 
-        suggestions.add(username + "1");
-        suggestions.add(username + "2");
-        suggestions.add(username.replace("_", "."));
-        suggestions.add(username + "_official");
+        int stock = inventory.getOrDefault(productId, 0);
 
-        return suggestions;
-    }
+        if (stock > 0) {
 
-    // Find most attempted username
-    public static String getMostAttempted() {
+            stock--;
+            inventory.put(productId, stock);
 
-        String most = "";
-        int max = 0;
-
-        for (String user : attempts.keySet()) {
-            if (attempts.get(user) > max) {
-                max = attempts.get(user);
-                most = user;
-            }
+            return "Success, " + stock + " units remaining";
         }
 
-        return most + " (" + max + " attempts)";
+        else {
+
+            LinkedHashMap<Integer, Boolean> queue = waitingList.get(productId);
+            queue.put(userId, true);
+
+            int position = queue.size();
+
+            return "Added to waiting list, position #" + position;
+        }
     }
+
 
     public static void main(String[] args) {
 
-        registerUser("john_doe", 101);
-        registerUser("admin", 102);
+        addProduct("IPHONE15_256GB", 100);
 
-        System.out.println("john_doe available: " + checkAvailability("john_doe"));
-        System.out.println("jane_smith available: " + checkAvailability("jane_smith"));
+        System.out.println("Stock: " + checkStock("IPHONE15_256GB") + " units available");
 
-        System.out.println("Suggestions: " + suggestAlternatives("john_doe"));
+        System.out.println(purchaseItem("IPHONE15_256GB", 12345));
+        System.out.println(purchaseItem("IPHONE15_256GB", 67890));
 
-        System.out.println("Most attempted: " + getMostAttempted());
+        // simulate stock exhaustion
+        for(int i = 0; i < 100; i++) {
+            purchaseItem("IPHONE15_256GB", i);
+        }
+
+        System.out.println(purchaseItem("IPHONE15_256GB", 99999));
     }
 }

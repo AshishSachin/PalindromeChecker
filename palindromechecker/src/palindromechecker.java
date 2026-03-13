@@ -1,105 +1,126 @@
 import java.util.*;
 
-class TokenBucket {
+class TrieNode {
+    Map<Character, TrieNode> children = new HashMap<>();
+    boolean isEnd = false;
+}
 
-    int maxTokens;
-    double refillRate; // tokens per second
-    double tokens;
-    long lastRefillTime;
+class AutocompleteSystem {
 
-    public TokenBucket(int maxTokens, double refillRate) {
-        this.maxTokens = maxTokens;
-        this.refillRate = refillRate;
-        this.tokens = maxTokens;
-        this.lastRefillTime = System.currentTimeMillis();
-    }
+    private TrieNode root = new TrieNode();
 
-    public synchronized boolean allowRequest() {
+    // query → frequency
+    private HashMap<String, Integer> frequencyMap = new HashMap<>();
 
-        refill();
 
-        if (tokens >= 1) {
-            tokens -= 1;
-            return true;
+    // Insert query into Trie
+    public void insertQuery(String query) {
+
+        TrieNode node = root;
+
+        for (char c : query.toCharArray()) {
+
+            node.children.putIfAbsent(c, new TrieNode());
+            node = node.children.get(c);
         }
 
-        return false;
+        node.isEnd = true;
+
+        frequencyMap.put(query,
+                frequencyMap.getOrDefault(query, 0) + 1);
     }
 
-    private void refill() {
 
-        long now = System.currentTimeMillis();
+    // Search prefix suggestions
+    public void search(String prefix) {
 
-        double secondsPassed = (now - lastRefillTime) / 1000.0;
+        TrieNode node = root;
 
-        double tokensToAdd = secondsPassed * refillRate;
+        for (char c : prefix.toCharArray()) {
 
-        tokens = Math.min(maxTokens, tokens + tokensToAdd);
+            if (!node.children.containsKey(c)) {
+                System.out.println("No suggestions found");
+                return;
+            }
 
-        lastRefillTime = now;
+            node = node.children.get(c);
+        }
+
+        List<String> results = new ArrayList<>();
+        dfs(node, prefix, results);
+
+        PriorityQueue<String> topK =
+                new PriorityQueue<>(
+                        (a, b) -> frequencyMap.get(a) - frequencyMap.get(b)
+                );
+
+        for (String query : results) {
+
+            topK.offer(query);
+
+            if (topK.size() > 10)
+                topK.poll();
+        }
+
+        List<String> suggestions = new ArrayList<>();
+
+        while (!topK.isEmpty())
+            suggestions.add(topK.poll());
+
+        Collections.reverse(suggestions);
+
+        System.out.println("\nSuggestions for \"" + prefix + "\":");
+
+        for (String s : suggestions) {
+            System.out.println(s + " (" + frequencyMap.get(s) + " searches)");
+        }
     }
 
-    public int remainingTokens() {
-        return (int) tokens;
+
+    // DFS to collect words from Trie
+    private void dfs(TrieNode node, String word, List<String> results) {
+
+        if (node.isEnd)
+            results.add(word);
+
+        for (char c : node.children.keySet()) {
+
+            dfs(node.children.get(c),
+                    word + c,
+                    results);
+        }
+    }
+
+
+    // Update frequency after search
+    public void updateFrequency(String query) {
+
+        insertQuery(query);
+
+        System.out.println(query + " → Frequency: " +
+                frequencyMap.get(query));
     }
 }
 
-class RateLimiter {
-
-    private HashMap<String, TokenBucket> clientBuckets = new HashMap<>();
-
-    private int MAX_REQUESTS = 1000;
-    private double REFILL_RATE = 1000.0 / 3600; // tokens per second
-
-    public void checkRateLimit(String clientId) {
-
-        clientBuckets.putIfAbsent(clientId,
-                new TokenBucket(MAX_REQUESTS, REFILL_RATE));
-
-        TokenBucket bucket = clientBuckets.get(clientId);
-
-        if (bucket.allowRequest()) {
-
-            System.out.println("Allowed (" +
-                    bucket.remainingTokens() +
-                    " requests remaining)");
-
-        } else {
-
-            System.out.println("Denied (Rate limit exceeded)");
-        }
-    }
-
-    public void getRateLimitStatus(String clientId) {
-
-        TokenBucket bucket = clientBuckets.get(clientId);
-
-        if (bucket == null) {
-            System.out.println("Client not found");
-            return;
-        }
-
-        int used = MAX_REQUESTS - bucket.remainingTokens();
-
-        System.out.println("{used: " + used +
-                ", limit: " + MAX_REQUESTS +
-                ", remaining: " + bucket.remainingTokens() + "}");
-    }
-}
-
-public class RateLimiterApp {
+public class AutocompleteApp {
 
     public static void main(String[] args) {
 
-        RateLimiter limiter = new RateLimiter();
+        AutocompleteSystem system = new AutocompleteSystem();
 
-        String client = "abc123";
+        // existing search queries
+        system.insertQuery("java tutorial");
+        system.insertQuery("javascript");
+        system.insertQuery("java download");
+        system.insertQuery("java tutorial");
+        system.insertQuery("java tutorial");
 
-        // simulate requests
-        for (int i = 0; i < 5; i++) {
-            limiter.checkRateLimit(client);
-        }
+        // search suggestions
+        system.search("jav");
 
-        limiter.getRateLimitStatus(client);
+        // update frequency
+        system.updateFrequency("java 21 features");
+
+        system.search("java");
     }
 }

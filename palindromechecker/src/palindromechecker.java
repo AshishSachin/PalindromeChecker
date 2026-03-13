@@ -1,91 +1,105 @@
 import java.util.*;
 
-class AnalyticsSystem {
+class TokenBucket {
 
-    // page → total views
-    private HashMap<String, Integer> pageViews = new HashMap<>();
+    int maxTokens;
+    double refillRate; // tokens per second
+    double tokens;
+    long lastRefillTime;
 
-    // page → unique users
-    private HashMap<String, Set<String>> uniqueVisitors = new HashMap<>();
-
-    // traffic source → count
-    private HashMap<String, Integer> trafficSources = new HashMap<>();
-
-
-    // Process incoming event
-    public void processEvent(String url, String userId, String source) {
-
-        // Count page views
-        pageViews.put(url, pageViews.getOrDefault(url, 0) + 1);
-
-        // Track unique visitors
-        uniqueVisitors
-                .computeIfAbsent(url, k -> new HashSet<>())
-                .add(userId);
-
-        // Track traffic sources
-        trafficSources.put(source,
-                trafficSources.getOrDefault(source, 0) + 1);
+    public TokenBucket(int maxTokens, double refillRate) {
+        this.maxTokens = maxTokens;
+        this.refillRate = refillRate;
+        this.tokens = maxTokens;
+        this.lastRefillTime = System.currentTimeMillis();
     }
 
+    public synchronized boolean allowRequest() {
 
-    // Get top 10 pages
-    public void getDashboard() {
+        refill();
 
-        System.out.println("\nTop Pages:");
-
-        List<Map.Entry<String, Integer>> list =
-                new ArrayList<>(pageViews.entrySet());
-
-        // sort by views
-        list.sort((a, b) -> b.getValue() - a.getValue());
-
-        int count = 0;
-
-        for (Map.Entry<String, Integer> entry : list) {
-
-            String page = entry.getKey();
-            int views = entry.getValue();
-            int unique = uniqueVisitors.get(page).size();
-
-            System.out.println((count + 1) + ". " + page +
-                    " - " + views + " views (" +
-                    unique + " unique)");
-
-            count++;
-
-            if (count == 10)
-                break;
+        if (tokens >= 1) {
+            tokens -= 1;
+            return true;
         }
 
-        System.out.println("\nTraffic Sources:");
+        return false;
+    }
 
-        for (String source : trafficSources.keySet()) {
-            System.out.println(source + " → " + trafficSources.get(source));
-        }
+    private void refill() {
+
+        long now = System.currentTimeMillis();
+
+        double secondsPassed = (now - lastRefillTime) / 1000.0;
+
+        double tokensToAdd = secondsPassed * refillRate;
+
+        tokens = Math.min(maxTokens, tokens + tokensToAdd);
+
+        lastRefillTime = now;
+    }
+
+    public int remainingTokens() {
+        return (int) tokens;
     }
 }
 
+class RateLimiter {
 
-public class RealTimeAnalyticsApp {
+    private HashMap<String, TokenBucket> clientBuckets = new HashMap<>();
 
-    public static void main(String[] args) throws Exception {
+    private int MAX_REQUESTS = 1000;
+    private double REFILL_RATE = 1000.0 / 3600; // tokens per second
 
-        AnalyticsSystem system = new AnalyticsSystem();
+    public void checkRateLimit(String clientId) {
 
-        // simulate incoming events
-        system.processEvent("/article/breaking-news", "user_123", "google");
-        system.processEvent("/article/breaking-news", "user_456", "facebook");
-        system.processEvent("/sports/championship", "user_789", "google");
-        system.processEvent("/sports/championship", "user_101", "direct");
-        system.processEvent("/article/breaking-news", "user_123", "google");
+        clientBuckets.putIfAbsent(clientId,
+                new TokenBucket(MAX_REQUESTS, REFILL_RATE));
 
-        // dashboard refresh every 5 seconds
-        while (true) {
+        TokenBucket bucket = clientBuckets.get(clientId);
 
-            Thread.sleep(5000);
+        if (bucket.allowRequest()) {
 
-            system.getDashboard();
+            System.out.println("Allowed (" +
+                    bucket.remainingTokens() +
+                    " requests remaining)");
+
+        } else {
+
+            System.out.println("Denied (Rate limit exceeded)");
         }
+    }
+
+    public void getRateLimitStatus(String clientId) {
+
+        TokenBucket bucket = clientBuckets.get(clientId);
+
+        if (bucket == null) {
+            System.out.println("Client not found");
+            return;
+        }
+
+        int used = MAX_REQUESTS - bucket.remainingTokens();
+
+        System.out.println("{used: " + used +
+                ", limit: " + MAX_REQUESTS +
+                ", remaining: " + bucket.remainingTokens() + "}");
+    }
+}
+
+public class RateLimiterApp {
+
+    public static void main(String[] args) {
+
+        RateLimiter limiter = new RateLimiter();
+
+        String client = "abc123";
+
+        // simulate requests
+        for (int i = 0; i < 5; i++) {
+            limiter.checkRateLimit(client);
+        }
+
+        limiter.getRateLimitStatus(client);
     }
 }

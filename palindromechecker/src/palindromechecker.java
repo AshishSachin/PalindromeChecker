@@ -1,66 +1,111 @@
 import java.util.*;
 
+class DNSEntry {
+    String domain;
+    String ipAddress;
+    long timestamp;
+    long expiryTime;
+
+    DNSEntry(String domain, String ipAddress, int ttlSeconds) {
+        this.domain = domain;
+        this.ipAddress = ipAddress;
+        this.timestamp = System.currentTimeMillis();
+        this.expiryTime = timestamp + ttlSeconds * 1000;
+    }
+
+    boolean isExpired() {
+        return System.currentTimeMillis() > expiryTime;
+    }
+}
+
 public class PalindromeChecker {
 
-    // productId -> stock count
-    private static HashMap<String, Integer> inventory = new HashMap<>();
+    private final int MAX_SIZE = 5;
 
-    // productId -> waiting list (FIFO)
-    private static HashMap<String, LinkedHashMap<Integer, Boolean>> waitingList = new HashMap<>();
+    private LinkedHashMap<String, DNSEntry> cache =
+            new LinkedHashMap<String, DNSEntry>(16, 0.75f, true) {
 
+                protected boolean removeEldestEntry(Map.Entry<String, DNSEntry> eldest) {
+                    return size() > MAX_SIZE;
+                }
+            };
 
-    // Initialize stock
-    public static void addProduct(String productId, int stock) {
-        inventory.put(productId, stock);
-        waitingList.put(productId, new LinkedHashMap<>());
-    }
+    private int hits = 0;
+    private int misses = 0;
+    private long totalLookupTime = 0;
 
+    public String resolve(String domain) {
 
-    // Check stock availability
-    public static int checkStock(String productId) {
-        return inventory.getOrDefault(productId, 0);
-    }
+        long start = System.nanoTime();
 
+        if (cache.containsKey(domain)) {
 
-    // Purchase item (thread-safe)
-    public synchronized static String purchaseItem(String productId, int userId) {
+            DNSEntry entry = cache.get(domain);
 
-        int stock = inventory.getOrDefault(productId, 0);
+            if (!entry.isExpired()) {
+                hits++;
+                long end = System.nanoTime();
+                totalLookupTime += (end - start);
 
-        if (stock > 0) {
+                System.out.println("Cache HIT → " + entry.ipAddress);
+                return entry.ipAddress;
+            }
 
-            stock--;
-            inventory.put(productId, stock);
-
-            return "Success, " + stock + " units remaining";
+            System.out.println("Cache EXPIRED → Query upstream");
+            cache.remove(domain);
         }
 
-        else {
+        misses++;
 
-            LinkedHashMap<Integer, Boolean> queue = waitingList.get(productId);
-            queue.put(userId, true);
+        String ip = queryUpstreamDNS(domain);
 
-            int position = queue.size();
+        cache.put(domain, new DNSEntry(domain, ip, 10));
 
-            return "Added to waiting list, position #" + position;
-        }
+        long end = System.nanoTime();
+        totalLookupTime += (end - start);
+
+        System.out.println("Cache MISS → Query upstream → " + ip + " (TTL: 10s)");
+
+        return ip;
     }
 
+    private String queryUpstreamDNS(String domain) {
 
-    public static void main(String[] args) {
-
-        addProduct("IPHONE15_256GB", 100);
-
-        System.out.println("Stock: " + checkStock("IPHONE15_256GB") + " units available");
-
-        System.out.println(purchaseItem("IPHONE15_256GB", 12345));
-        System.out.println(purchaseItem("IPHONE15_256GB", 67890));
-
-        // simulate stock exhaustion
-        for(int i = 0; i < 100; i++) {
-            purchaseItem("IPHONE15_256GB", i);
+        try {
+            Thread.sleep(100); // simulate network delay
+        } catch (Exception e) {
         }
 
-        System.out.println(purchaseItem("IPHONE15_256GB", 99999));
+        Random r = new Random();
+        return "172.217.14." + r.nextInt(255);
+    }
+
+    public void getCacheStats() {
+
+        int total = hits + misses;
+
+        double hitRate = total == 0 ? 0 : (hits * 100.0) / total;
+
+        double avgLookupTime = total == 0 ? 0 : (totalLookupTime / total) / 1000000.0;
+
+        System.out.println("\nCache Statistics");
+        System.out.println("Hits: " + hits);
+        System.out.println("Misses: " + misses);
+        System.out.println("Hit Rate: " + hitRate + "%");
+        System.out.println("Avg Lookup Time: " + avgLookupTime + " ms");
+    }
+
+    public static void main(String[] args) throws Exception {
+
+        PalindromeChecker dnsCache = new PalindromeChecker();
+
+        dnsCache.resolve("google.com");
+        dnsCache.resolve("google.com");
+
+        Thread.sleep(11000);
+
+        dnsCache.resolve("google.com");
+
+        dnsCache.getCacheStats();
     }
 }

@@ -1,99 +1,91 @@
 import java.util.*;
 
-class PlagiarismDetector {
+class AnalyticsSystem {
 
-    // n-gram → documents mapping
-    private HashMap<String, Set<String>> ngramIndex = new HashMap<>();
+    // page → total views
+    private HashMap<String, Integer> pageViews = new HashMap<>();
 
-    private int N = 5; // 5-grams
+    // page → unique users
+    private HashMap<String, Set<String>> uniqueVisitors = new HashMap<>();
 
-    // Add document to database
-    public void addDocument(String documentId, String text) {
+    // traffic source → count
+    private HashMap<String, Integer> trafficSources = new HashMap<>();
 
-        List<String> ngrams = generateNgrams(text);
 
-        for (String gram : ngrams) {
-            ngramIndex
-                    .computeIfAbsent(gram, k -> new HashSet<>())
-                    .add(documentId);
-        }
+    // Process incoming event
+    public void processEvent(String url, String userId, String source) {
+
+        // Count page views
+        pageViews.put(url, pageViews.getOrDefault(url, 0) + 1);
+
+        // Track unique visitors
+        uniqueVisitors
+                .computeIfAbsent(url, k -> new HashSet<>())
+                .add(userId);
+
+        // Track traffic sources
+        trafficSources.put(source,
+                trafficSources.getOrDefault(source, 0) + 1);
     }
 
-    // Analyze a new document
-    public void analyzeDocument(String documentId, String text) {
 
-        List<String> ngrams = generateNgrams(text);
+    // Get top 10 pages
+    public void getDashboard() {
 
-        System.out.println("Extracted " + ngrams.size() + " n-grams");
+        System.out.println("\nTop Pages:");
 
-        HashMap<String, Integer> matchCount = new HashMap<>();
+        List<Map.Entry<String, Integer>> list =
+                new ArrayList<>(pageViews.entrySet());
 
-        for (String gram : ngrams) {
+        // sort by views
+        list.sort((a, b) -> b.getValue() - a.getValue());
 
-            if (ngramIndex.containsKey(gram)) {
+        int count = 0;
 
-                for (String doc : ngramIndex.get(gram)) {
-                    matchCount.put(doc, matchCount.getOrDefault(doc, 0) + 1);
-                }
-            }
+        for (Map.Entry<String, Integer> entry : list) {
+
+            String page = entry.getKey();
+            int views = entry.getValue();
+            int unique = uniqueVisitors.get(page).size();
+
+            System.out.println((count + 1) + ". " + page +
+                    " - " + views + " views (" +
+                    unique + " unique)");
+
+            count++;
+
+            if (count == 10)
+                break;
         }
 
-        for (String doc : matchCount.keySet()) {
+        System.out.println("\nTraffic Sources:");
 
-            int matches = matchCount.get(doc);
-
-            double similarity = (matches * 100.0) / ngrams.size();
-
-            System.out.println("Found " + matches +
-                    " matching n-grams with \"" + doc + "\"");
-
-            System.out.println("Similarity: " + similarity + "%");
-
-            if (similarity > 60) {
-                System.out.println("PLAGIARISM DETECTED");
-            }
-
-            System.out.println();
+        for (String source : trafficSources.keySet()) {
+            System.out.println(source + " → " + trafficSources.get(source));
         }
-    }
-
-    // Generate n-grams
-    private List<String> generateNgrams(String text) {
-
-        String[] words = text.toLowerCase().split("\\s+");
-
-        List<String> ngrams = new ArrayList<>();
-
-        for (int i = 0; i <= words.length - N; i++) {
-
-            StringBuilder gram = new StringBuilder();
-
-            for (int j = 0; j < N; j++) {
-                gram.append(words[i + j]).append(" ");
-            }
-
-            ngrams.add(gram.toString().trim());
-        }
-
-        return ngrams;
     }
 }
 
-public class PlagiarismDetectionApp {
 
-    public static void main(String[] args) {
+public class RealTimeAnalyticsApp {
 
-        PlagiarismDetector detector = new PlagiarismDetector();
+    public static void main(String[] args) throws Exception {
 
-        // Existing documents
-        detector.addDocument("essay_089.txt",
-                "machine learning algorithms improve automatically through experience");
+        AnalyticsSystem system = new AnalyticsSystem();
 
-        detector.addDocument("essay_092.txt",
-                "machine learning algorithms improve automatically through experience using data");
+        // simulate incoming events
+        system.processEvent("/article/breaking-news", "user_123", "google");
+        system.processEvent("/article/breaking-news", "user_456", "facebook");
+        system.processEvent("/sports/championship", "user_789", "google");
+        system.processEvent("/sports/championship", "user_101", "direct");
+        system.processEvent("/article/breaking-news", "user_123", "google");
 
-        // New document to analyze
-        detector.analyzeDocument("essay_123.txt",
-                "machine learning algorithms improve automatically through experience using training data");
+        // dashboard refresh every 5 seconds
+        while (true) {
+
+            Thread.sleep(5000);
+
+            system.getDashboard();
+        }
     }
 }

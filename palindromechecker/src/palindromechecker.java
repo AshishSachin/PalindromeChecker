@@ -1,126 +1,145 @@
 import java.util.*;
 
-class TrieNode {
-    Map<Character, TrieNode> children = new HashMap<>();
-    boolean isEnd = false;
+class ParkingSpot {
+
+    String licensePlate;
+    long entryTime;
+    boolean occupied;
+
+    ParkingSpot() {
+        this.occupied = false;
+    }
 }
 
-class AutocompleteSystem {
+class ParkingLot {
 
-    private TrieNode root = new TrieNode();
+    private int SIZE = 500;
+    private ParkingSpot[] table = new ParkingSpot[SIZE];
 
-    // query → frequency
-    private HashMap<String, Integer> frequencyMap = new HashMap<>();
+    private int totalProbes = 0;
+    private int totalParks = 0;
 
-
-    // Insert query into Trie
-    public void insertQuery(String query) {
-
-        TrieNode node = root;
-
-        for (char c : query.toCharArray()) {
-
-            node.children.putIfAbsent(c, new TrieNode());
-            node = node.children.get(c);
+    public ParkingLot() {
+        for (int i = 0; i < SIZE; i++) {
+            table[i] = new ParkingSpot();
         }
-
-        node.isEnd = true;
-
-        frequencyMap.put(query,
-                frequencyMap.getOrDefault(query, 0) + 1);
     }
 
+    // Hash function
+    private int hash(String plate) {
+        return Math.abs(plate.hashCode()) % SIZE;
+    }
 
-    // Search prefix suggestions
-    public void search(String prefix) {
+    // Park vehicle
+    public void parkVehicle(String plate) {
 
-        TrieNode node = root;
+        int index = hash(plate);
+        int probes = 0;
 
-        for (char c : prefix.toCharArray()) {
+        while (table[index].occupied) {
 
-            if (!node.children.containsKey(c)) {
-                System.out.println("No suggestions found");
+            index = (index + 1) % SIZE;
+            probes++;
+        }
+
+        table[index].licensePlate = plate;
+        table[index].entryTime = System.currentTimeMillis();
+        table[index].occupied = true;
+
+        totalProbes += probes;
+        totalParks++;
+
+        System.out.println("parkVehicle(\"" + plate + "\") → Assigned spot #" +
+                index + " (" + probes + " probes)");
+    }
+
+    // Exit vehicle
+    public void exitVehicle(String plate) {
+
+        int index = hash(plate);
+
+        int probes = 0;
+
+        while (table[index].occupied) {
+
+            if (table[index].licensePlate.equals(plate)) {
+
+                long duration =
+                        (System.currentTimeMillis() - table[index].entryTime) / 1000;
+
+                double hours = duration / 3600.0;
+
+                double fee = hours * 5; // $5 per hour
+
+                table[index].occupied = false;
+
+                System.out.println("exitVehicle(\"" + plate + "\") → Spot #" +
+                        index + " freed, Duration: " +
+                        hours + "h, Fee: $" + fee);
+
                 return;
             }
 
-            node = node.children.get(c);
+            index = (index + 1) % SIZE;
+            probes++;
+
+            if (probes > SIZE)
+                break;
         }
 
-        List<String> results = new ArrayList<>();
-        dfs(node, prefix, results);
-
-        PriorityQueue<String> topK =
-                new PriorityQueue<>(
-                        (a, b) -> frequencyMap.get(a) - frequencyMap.get(b)
-                );
-
-        for (String query : results) {
-
-            topK.offer(query);
-
-            if (topK.size() > 10)
-                topK.poll();
-        }
-
-        List<String> suggestions = new ArrayList<>();
-
-        while (!topK.isEmpty())
-            suggestions.add(topK.poll());
-
-        Collections.reverse(suggestions);
-
-        System.out.println("\nSuggestions for \"" + prefix + "\":");
-
-        for (String s : suggestions) {
-            System.out.println(s + " (" + frequencyMap.get(s) + " searches)");
-        }
+        System.out.println("Vehicle not found");
     }
 
+    // Find nearest available spot
+    public void nearestSpot() {
 
-    // DFS to collect words from Trie
-    private void dfs(TrieNode node, String word, List<String> results) {
+        for (int i = 0; i < SIZE; i++) {
 
-        if (node.isEnd)
-            results.add(word);
-
-        for (char c : node.children.keySet()) {
-
-            dfs(node.children.get(c),
-                    word + c,
-                    results);
+            if (!table[i].occupied) {
+                System.out.println("Nearest available spot: #" + i);
+                return;
+            }
         }
+
+        System.out.println("Parking lot full");
     }
 
+    // Statistics
+    public void getStatistics() {
 
-    // Update frequency after search
-    public void updateFrequency(String query) {
+        int occupied = 0;
 
-        insertQuery(query);
+        for (ParkingSpot spot : table) {
+            if (spot.occupied)
+                occupied++;
+        }
 
-        System.out.println(query + " → Frequency: " +
-                frequencyMap.get(query));
+        double occupancy = (occupied * 100.0) / SIZE;
+
+        double avgProbes = totalParks == 0 ? 0 : (double) totalProbes / totalParks;
+
+        System.out.println("\nParking Statistics:");
+        System.out.println("Occupancy: " + occupancy + "%");
+        System.out.println("Avg Probes: " + avgProbes);
     }
 }
 
-public class AutocompleteApp {
+public class ParkingLotApp {
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws Exception {
 
-        AutocompleteSystem system = new AutocompleteSystem();
+        ParkingLot lot = new ParkingLot();
 
-        // existing search queries
-        system.insertQuery("java tutorial");
-        system.insertQuery("javascript");
-        system.insertQuery("java download");
-        system.insertQuery("java tutorial");
-        system.insertQuery("java tutorial");
+        lot.parkVehicle("ABC-1234");
+        lot.parkVehicle("ABC-1235");
+        lot.parkVehicle("XYZ-9999");
 
-        // search suggestions
-        system.search("jav");
+        Thread.sleep(2000);
 
-        // update frequency
-        system.updateFrequency("java 21 features");
+        lot.exitVehicle("ABC-1234");
 
-        system.search("java");
+        lot.nearestSpot();
+
+        lot.getStatistics();
     }
 }

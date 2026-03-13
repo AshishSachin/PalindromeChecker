@@ -1,111 +1,99 @@
 import java.util.*;
 
-class DNSEntry {
-    String domain;
-    String ipAddress;
-    long timestamp;
-    long expiryTime;
+class PlagiarismDetector {
 
-    DNSEntry(String domain, String ipAddress, int ttlSeconds) {
-        this.domain = domain;
-        this.ipAddress = ipAddress;
-        this.timestamp = System.currentTimeMillis();
-        this.expiryTime = timestamp + ttlSeconds * 1000;
+    // n-gram → documents mapping
+    private HashMap<String, Set<String>> ngramIndex = new HashMap<>();
+
+    private int N = 5; // 5-grams
+
+    // Add document to database
+    public void addDocument(String documentId, String text) {
+
+        List<String> ngrams = generateNgrams(text);
+
+        for (String gram : ngrams) {
+            ngramIndex
+                    .computeIfAbsent(gram, k -> new HashSet<>())
+                    .add(documentId);
+        }
     }
 
-    boolean isExpired() {
-        return System.currentTimeMillis() > expiryTime;
+    // Analyze a new document
+    public void analyzeDocument(String documentId, String text) {
+
+        List<String> ngrams = generateNgrams(text);
+
+        System.out.println("Extracted " + ngrams.size() + " n-grams");
+
+        HashMap<String, Integer> matchCount = new HashMap<>();
+
+        for (String gram : ngrams) {
+
+            if (ngramIndex.containsKey(gram)) {
+
+                for (String doc : ngramIndex.get(gram)) {
+                    matchCount.put(doc, matchCount.getOrDefault(doc, 0) + 1);
+                }
+            }
+        }
+
+        for (String doc : matchCount.keySet()) {
+
+            int matches = matchCount.get(doc);
+
+            double similarity = (matches * 100.0) / ngrams.size();
+
+            System.out.println("Found " + matches +
+                    " matching n-grams with \"" + doc + "\"");
+
+            System.out.println("Similarity: " + similarity + "%");
+
+            if (similarity > 60) {
+                System.out.println("PLAGIARISM DETECTED");
+            }
+
+            System.out.println();
+        }
+    }
+
+    // Generate n-grams
+    private List<String> generateNgrams(String text) {
+
+        String[] words = text.toLowerCase().split("\\s+");
+
+        List<String> ngrams = new ArrayList<>();
+
+        for (int i = 0; i <= words.length - N; i++) {
+
+            StringBuilder gram = new StringBuilder();
+
+            for (int j = 0; j < N; j++) {
+                gram.append(words[i + j]).append(" ");
+            }
+
+            ngrams.add(gram.toString().trim());
+        }
+
+        return ngrams;
     }
 }
 
-public class PalindromeChecker {
+public class PlagiarismDetectionApp {
 
-    private final int MAX_SIZE = 5;
+    public static void main(String[] args) {
 
-    private LinkedHashMap<String, DNSEntry> cache =
-            new LinkedHashMap<String, DNSEntry>(16, 0.75f, true) {
+        PlagiarismDetector detector = new PlagiarismDetector();
 
-                protected boolean removeEldestEntry(Map.Entry<String, DNSEntry> eldest) {
-                    return size() > MAX_SIZE;
-                }
-            };
+        // Existing documents
+        detector.addDocument("essay_089.txt",
+                "machine learning algorithms improve automatically through experience");
 
-    private int hits = 0;
-    private int misses = 0;
-    private long totalLookupTime = 0;
+        detector.addDocument("essay_092.txt",
+                "machine learning algorithms improve automatically through experience using data");
 
-    public String resolve(String domain) {
-
-        long start = System.nanoTime();
-
-        if (cache.containsKey(domain)) {
-
-            DNSEntry entry = cache.get(domain);
-
-            if (!entry.isExpired()) {
-                hits++;
-                long end = System.nanoTime();
-                totalLookupTime += (end - start);
-
-                System.out.println("Cache HIT → " + entry.ipAddress);
-                return entry.ipAddress;
-            }
-
-            System.out.println("Cache EXPIRED → Query upstream");
-            cache.remove(domain);
-        }
-
-        misses++;
-
-        String ip = queryUpstreamDNS(domain);
-
-        cache.put(domain, new DNSEntry(domain, ip, 10));
-
-        long end = System.nanoTime();
-        totalLookupTime += (end - start);
-
-        System.out.println("Cache MISS → Query upstream → " + ip + " (TTL: 10s)");
-
-        return ip;
-    }
-
-    private String queryUpstreamDNS(String domain) {
-
-        try {
-            Thread.sleep(100); // simulate network delay
-        } catch (Exception e) {
-        }
-
-        Random r = new Random();
-        return "172.217.14." + r.nextInt(255);
-    }
-
-    public void getCacheStats() {
-
-        int total = hits + misses;
-
-        double hitRate = total == 0 ? 0 : (hits * 100.0) / total;
-
-        double avgLookupTime = total == 0 ? 0 : (totalLookupTime / total) / 1000000.0;
-
-        System.out.println("\nCache Statistics");
-        System.out.println("Hits: " + hits);
-        System.out.println("Misses: " + misses);
-        System.out.println("Hit Rate: " + hitRate + "%");
-        System.out.println("Avg Lookup Time: " + avgLookupTime + " ms");
-    }
-
-    public static void main(String[] args) throws Exception {
-
-        PalindromeChecker dnsCache = new PalindromeChecker();
-
-        dnsCache.resolve("google.com");
-        dnsCache.resolve("google.com");
-
-        Thread.sleep(11000);
-
-        dnsCache.resolve("google.com");
-
-        dnsCache.getCacheStats();
+        // New document to analyze
+        detector.analyzeDocument("essay_123.txt",
+                "machine learning algorithms improve automatically through experience using training data");
     }
 }
